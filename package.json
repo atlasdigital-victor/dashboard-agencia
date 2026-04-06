@@ -1,0 +1,6 @@
+{
+  "name": "agencia-dashboard",
+  "scripts": {
+    "start": "npx serve . -p $PORT"
+  }
+}
