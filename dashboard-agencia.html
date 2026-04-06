@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agência · Tráfego Pago</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f0f1a'/%3E%3Crect x='4' y='18' width='6' height='10' rx='1.5' fill='%2300d4aa'/%3E%3Crect x='13' y='10' width='6' height='18' rx='1.5' fill='%2300b896'/%3E%3Crect x='22' y='4' width='6' height='24' rx='1.5' fill='%2338bdf8'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #09090f;
+      --surface:   #111118;
+      --surface2:  #18181f;
+      --surface3:  #1f1f28;
+      --border:    #1e1e2a;
+      --border2:   #2a2a38;
+      --text:      #e8eaf0;
+      --text-2:    #9da5b4;
+      --text-3:    #555d70;
+      --accent:    #00d4aa;
+      --accent2:   #38bdf8;
+      --warn:      #f97316;
+      --danger:    #ef4444;
+      --green:     #34d399;
+      --font-head: 'DM Sans', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-head);
+      min-height: 100vh;
+    }
+
+    /* ── AUTH ── */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #auth-overlay.hidden { display: none; }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 360px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .login-logo {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -.02em;
+    }
+    .login-tagline {
+      font-size: .82rem;
+      color: var(--text-3);
+      margin-top: -12px;
+      font-family: var(--font-mono);
+    }
+    .login-field label {
+      display: block;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+    .login-field input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: .9rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .login-field input:focus { border-color: var(--accent); }
+    .login-error { font-size: .8rem; color: var(--danger); min-height: 1.2em; }
+    .btn-login {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: .9rem;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-login:hover { opacity: .85; }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── TOPBAR ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    #app.visible { display: flex; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      gap: 16px;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 20px; flex: 1; }
+    .logo {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .logo-sep { color: var(--text-3); margin: 0 4px; }
+    .logo-sub { color: var(--text-3); font-size: .72rem; font-weight: 400; }
+
+    /* Nicho tabs */
+    .nicho-tabs { display: flex; gap: 4px; }
+    .ntab {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--text-3);
+      cursor: pointer;
+      font-family: var(--font-head);
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      transition: all .15s;
+    }
+    .ntab:hover { color: var(--text); border-color: var(--border2); }
+    .ntab.active {
+      background: var(--surface3);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .date-filter {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .78rem; color: var(--text-3);
+    }
+    .date-filter input[type=date] {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      padding: 5px 10px;
+      outline: none;
+    }
+    .date-filter input[type=date]:focus { border-color: var(--accent); }
+    .btn-apply, .btn-refresh {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: var(--font-head);
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      transition: all .15s;
+    }
+    .btn-apply:hover, .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+    .logout-btn {
+      background: none; border: 1px solid var(--border2);
+      border-radius: 6px; color: var(--text-3);
+      cursor: pointer; font-size: .72rem; padding: 4px 10px;
+      transition: all .15s;
+    }
+    .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      padding: 28px 32px;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .section-icon { font-size: 1.3rem; }
+    .section-title-big {
+      font-size: 1.25rem; font-weight: 700;
+      color: var(--text); letter-spacing: -.01em;
+    }
+    .section-subtitle {
+      font-size: .78rem; color: var(--text-3);
+      margin-left: 4px;
+    }
+
+    /* ── KPI ROWS ── */
+        .kpi-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    /* KPI cards de ads — mais compactos para caber 5 por linha com sparkline */
+    #ads-kpi-row1 .kpi-card,
+    #ads-kpi-row2 .kpi-card,
+    #ads-kpi-row2b .kpi-card,
+    #ads-kpi-row3 .kpi-card {
+      padding: 12px 14px 10px;
+      min-width: 0;
+      flex: 1 1 0;
+    }
+    #ads-kpi-row1 .kpi-value,
+    #ads-kpi-row2 .kpi-value,
+    #ads-kpi-row2b .kpi-value,
+    #ads-kpi-row3 .kpi-value {
+      font-size: 1.25rem;
+      margin-bottom: 2px;
+    }
+    #ads-kpi-row1 .kpi-sparkline,
+    #ads-kpi-row2 .kpi-sparkline,
+    #ads-kpi-row2b .kpi-sparkline,
+    #ads-kpi-row3 .kpi-sparkline {
+      height: 28px;
+      margin-top: 4px;
+    }
+    #ads-kpi-row1 .kpi-sparkline svg,
+    #ads-kpi-row2 .kpi-sparkline svg,
+    #ads-kpi-row2b .kpi-sparkline svg,
+    #ads-kpi-row3 .kpi-sparkline svg {
+      height: 28px;
+    }
+
+    .ads-subsection {
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+
+    /* Tabelas com scroll — thead fixo */
+    .table-wrap { overflow-x: auto; }
+    .table-wrap[style*="max-height"] thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 2;
+    }
+
+    /* Linhas clicáveis nas tabelas de ads */
+    .ads-clickable-row {
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .ads-clickable-row:hover { background: var(--surface2); }
+    .ads-clickable-row.ads-row-active {
+      background: rgba(124,58,237,.15);
+      outline: 1px solid rgba(124,58,237,.4);
+    }
+
+    /* Pivot table: células coloridas por valor */
+    .pivot-cell-roas    { text-align:right; font-family:var(--font-mono); font-size:.78rem; padding:6px 10px; }
+    .pivot-cell-good    { color: var(--accent); }
+    .pivot-cell-ok      { color: #f59e0b; }
+    .pivot-cell-bad     { color: var(--warn); }
+    .pivot-cell-neutral { color: var(--text-2); }
+
+    /* ════════════════════════════════
+       ADS FILTERS
+    ════════════════════════════════ */
+    .ads-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .ads-filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 140px;
+    }
+    .ads-filter-label {
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-3);
+    }
+    .ads-select {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-head);
+      font-size: .78rem;
+      padding: 6px 10px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+    .ads-select:focus { outline: none; border-color: var(--accent); }
+
+    /* sparklines inside kpi cards */
+    .kpi-sparkline {
+
+    /* ── CHARTS ── */
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    /* ── TABLES ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+    }
+    .data-table th {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border2);
+      color: var(--text-3);
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 8px 12px;
+      text-align: left;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .data-table th:hover { color: var(--text); }
+    .data-table td {
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      padding: 7px 12px;
+      white-space: nowrap;
+    }
+    .data-table tbody tr:hover { background: var(--surface2); }
+    .table-wrap { overflow-x: auto; overflow-y: auto; }
+    .table-wrap thead th {
+      position: sticky; top: 0;
+      background: var(--surface2); z-index: 2;
+    }
+
+    /* Subsection titles */
+    .subsection-title {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-3);
+      margin: 24px 0 10px;
+    }
+
+    /* Loading / empty */
+    .loading { display:flex; align-items:center; gap:10px; color:var(--text-3); padding:24px; font-size:.85rem; }
+    .empty { color:var(--text-3); padding:24px; font-size:.85rem; text-align:center; }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Clickable rows */
+    .ads-clickable-row { cursor: pointer; transition: background .12s; }
+    .ads-clickable-row:hover { background: var(--surface2); }
+    .ads-clickable-row.ads-row-active {
+      background: rgba(0,212,170,.08);
+      outline: 1px solid rgba(0,212,170,.3);
+    }
+
+    /* Error */
+    .ads-error { background: rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:8px; color:var(--danger); font-size:.82rem; padding:12px 16px; margin-bottom:16px; display:none; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-overlay">
+  <div class="login-card">
+    <div class="login-logo">Atlas <span style="color:var(--text-3);font-size:.8rem">/ Agência</span></div>
+    <div class="login-tagline">Tráfego Pago</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" />
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">Atlas <span class="logo-sep">/</span> <span class="logo-sub">Tráfego Pago</span></div>
+      <div class="nicho-tabs">
+        <button class="ntab active" data-tab="total"         onclick="switchNicho(this)">Total</button>
+        <button class="ntab"        data-tab="masculino"     onclick="switchNicho(this)">Masculino</button>
+        <button class="ntab"        data-tab="espiritual"    onclick="switchNicho(this)">Espiritual</button>
+        <button class="ntab"        data-tab="emagrecimento" onclick="switchNicho(this)">Emagrecimento</button>
+      </div>
+    </div>
+    <div class="date-filter">
+      <label>De</label>
+      <input type="date" id="date-from" value="2025-12-01" />
+      <span>—</span>
+      <input type="date" id="date-to" />
+      <button class="btn-apply" onclick="loadAds()">Aplicar</button>
+      <button class="btn-refresh" onclick="loadAds()" title="Atualizar">↻</button>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+        <div id="main-content">
+      <div class="section-header">
+        <span class="section-icon">📣</span>
+        <span class="section-title-big">Tráfego Pago</span>
+        <span class="section-subtitle">Performance de campanhas TikTok Ads</span>
+      </div>
+
+      <!-- ADS FILTERS -->
+      <div class="ads-filters" id="ads-filters">
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Plataforma</label>
+          <select id="ads-plataforma" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Conta</label>
+          <select id="ads-conta" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Campanha</label>
+          <select id="ads-campaign" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Anúncio</label>
+          <select id="ads-ad" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KPI ROW 1: Financeiro -->
+      <div class="subsection-title ads-subsection">Financeiro</div>
+      <div class="kpi-row" id="ads-kpi-row1">
+        <div class="kpi-card" id="ads-kpi-revenue">
+          <div class="kpi-label">Receita</div>
+          <div class="kpi-value" id="ads-val-revenue">—</div>
+          <div class="kpi-sparkline" id="spark-revenue"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-cost">
+          <div class="kpi-label">Custo</div>
+          <div class="kpi-value" id="ads-val-cost">—</div>
+          <div class="kpi-sparkline" id="spark-cost"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-clicks">
+          <div class="kpi-label">Cliques</div>
+          <div class="kpi-value" id="ads-val-clicks">—</div>
+          <div class="kpi-sparkline" id="spark-clicks"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-ics">
+          <div class="kpi-label">ICs</div>
+          <div class="kpi-value" id="ads-val-ics">—</div>
+          <div class="kpi-sparkline" id="spark-ics"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-conv">
+          <div class="kpi-label">Conversões</div>
+          <div class="kpi-value" id="ads-val-conv">—</div>
+          <div class="kpi-sparkline" id="spark-conv"></div>
+        </div>
+      </div>
+
+      <!-- KPI ROW 2: ROAS, Lucro, CPC, CPI, CPA -->
+      <div class="kpi-row" id="ads-kpi-row2">
+        <div class="kpi-card" id="ads-kpi-roas">
+          <div class="kpi-label">ROAS</div>
+          <div class="kpi-value" id="ads-val-roas">—</div>
+          <div class="kpi-sparkline" id="spark-roas"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-profit">
+          <div class="kpi-label">Lucro</div>
+          <div class="kpi-value" id="ads-val-profit">—</div>
+          <div class="kpi-sparkline" id="spark-profit"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-cpc">
+          <div class="kpi-label">CPC</div>
+          <div class="kpi-value" id="ads-val-cpc">—</div>
+          <div class="kpi-sparkline" id="spark-cpc"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-cpi">
+          <div class="kpi-label">CPI</div>
+          <div class="kpi-value" id="ads-val-cpi">—</div>
+          <div class="kpi-sparkline" id="spark-cpi"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-cpa">
+          <div class="kpi-label">CPA</div>
+          <div class="kpi-value" id="ads-val-cpa">—</div>
+          <div class="kpi-sparkline" id="spark-cpa"></div>
+        </div>
+      </div>
+
+      <!-- KPI ROW 2b: CPM e CTR -->
+      <div class="kpi-row" id="ads-kpi-row2b">
+        <div class="kpi-card" id="ads-kpi-cpm">
+          <div class="kpi-label">CPM</div>
+          <div class="kpi-value" id="ads-val-cpm">—</div>
+          <div class="kpi-sparkline" id="spark-cpm"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-ctr">
+          <div class="kpi-label">CTR</div>
+          <div class="kpi-value" id="ads-val-ctr">—</div>
+          <div class="kpi-sparkline" id="spark-ctr"></div>
+        </div>
+      </div>
+
+      <!-- KPI ROW 3: Deep Dive -->
+      <div class="subsection-title ads-subsection" style="margin-top:8px;">Deep Dive</div>
+      <div class="kpi-row" id="ads-kpi-row3">
+        <div class="kpi-card" id="ads-kpi-hook">
+          <div class="kpi-label">Hook Rate</div>
+          <div class="kpi-value" id="ads-val-hook">—</div>
+          <div class="kpi-sparkline" id="spark-hook"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-hold">
+          <div class="kpi-label">Hold Rate</div>
+          <div class="kpi-value" id="ads-val-hold">—</div>
+          <div class="kpi-sparkline" id="spark-hold"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-aov">
+          <div class="kpi-label">AOV</div>
+          <div class="kpi-value" id="ads-val-aov">—</div>
+          <div class="kpi-sparkline" id="spark-aov"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-checkout-conv">
+          <div class="kpi-label">Checkout Conv.</div>
+          <div class="kpi-value" id="ads-val-checkout-conv">—</div>
+          <div class="kpi-sparkline" id="spark-checkout-conv"></div>
+        </div>
+        <div class="kpi-card" id="ads-kpi-upsell-conv">
+          <div class="kpi-label">Upsell Conv.</div>
+          <div class="kpi-value" id="ads-val-upsell-conv">—</div>
+          <div class="kpi-sparkline" id="spark-upsell-conv"></div>
+        </div>
+      </div>
+
+      <div id="ads-loading" class="loading" style="display:none"><div class="spinner"></div> Carregando dados de tráfego…</div>
+      <div id="ads-error"   class="empty"   style="display:none"></div>
+
+      <!-- TABELA GRANULAR POR ANÚNCIO -->
+      <div class="subsection-title ads-subsection" style="margin-top:32px;">Análise Diária Granular</div>
+      <div style="font-size:.75rem;color:var(--text-3);margin-bottom:12px;">Agregado por anúncio no período selecionado · VSL Play CPA = Custo / VSL Plays</div>
+      <div class="table-wrap" id="ads-table-granular" style="max-height:420px;overflow-y:auto;">
+        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      </div>
+
+      <!-- TABELAS PIVOT POR CAMPANHA (últimos 7d do período) -->
+      <div class="subsection-title ads-subsection" style="margin-top:32px;">Aprofundamento por Campanha</div>
+      <div style="font-size:.75rem;color:var(--text-3);margin-bottom:16px;">Últimos 7 dias do período selecionado · cada linha = campanha, cada coluna = dia</div>
+
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">ROAS por dia</div>
+      <div class="table-wrap" id="ads-pivot-roas" style="max-height:420px;overflow-y:auto;margin-bottom:24px;">
+        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      </div>
+
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">Receita por dia</div>
+      <div class="table-wrap" id="ads-pivot-revenue" style="max-height:420px;overflow-y:auto;margin-bottom:24px;">
+        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      </div>
+
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">Custo por dia</div>
+      <div class="table-wrap" id="ads-pivot-cost" style="max-height:420px;overflow-y:auto;margin-bottom:8px;">
+        <div class="loading"><div class="spinner"></div> Carregando…</div>
+      </div>
+
+      <!-- GRÁFICOS: ROAS / CPC / CPI -->
+      <div class="subsection-title ads-subsection" style="margin-top:36px;">Tendência do Período</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:4px;" id="ads-charts-row">
+        <div class="chart-card">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:12px;">ROAS</div>
+          <div style="position:relative;height:220px;">
+            <canvas id="ads-chart-roas"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:12px;">CPC ($)</div>
+          <div style="position:relative;height:220px;">
+            <canvas id="ads-chart-cpc"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:12px;">CPI ($)</div>
+          <div style="position:relative;height:220px;">
+            <canvas id="ads-chart-cpi"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://khfokpagqviqtwowbzyc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtoZm9rcGFncXZpcXR3b3dienljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgwNTA1NjUsImV4cCI6MjA2MzYyNjU2NX0.fMzRtkBJGEGVPss-s896Sm4YTFOXwsiCY-S6yRjCc3M';
+const AUTH_KEY     = 'atlas_agency_session';
+
+// ── AUTH ─────────────────────────────────────────────────────────────
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
+}
+function saveSession(s) { localStorage.setItem(AUTH_KEY, JSON.stringify(s)); }
+function clearSession()  { localStorage.removeItem(AUTH_KEY); }
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('btn-login');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      errEl.textContent = 'Email ou senha incorretos.';
+      btn.disabled = false; btn.textContent = 'Entrar'; return;
+    }
+    saveSession({ access_token: data.access_token, email: data.user?.email });
+    showApp(); loadAds();
+  } catch(e) {
+    errEl.textContent = 'Erro de conexão.';
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+function doLogout() {
+  clearSession();
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('btn-login').disabled = false;
+  document.getElementById('btn-login').textContent = 'Entrar';
+}
+
+function showApp() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+}
+
+// ── NICHO / TAB ───────────────────────────────────────────────────────
+let activeTab = 'total';
+
+function getTz() { return 'America/Sao_Paulo'; }
+
+function switchNicho(el) {
+  document.querySelectorAll('.ntab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  activeTab = el.dataset.tab;
+  loadAds();
+}
+
+// Inicializar data-to
+document.getElementById('date-to').value = new Date().toISOString().split('T')[0];
+
+// ── ADS JS ───────────────────────────────────────────────────────────
+function getAdsFilterValues() {
+  return {
+    dateFrom:   document.getElementById('date-from')?.value      || '2025-12-01',
+    dateTo:     document.getElementById('date-to')?.value        || new Date().toISOString().split('T')[0],
+    plataforma: document.getElementById('ads-plataforma')?.value || '',
+    conta:      document.getElementById('ads-conta')?.value      || '',
+    campaign:   document.getElementById('ads-campaign')?.value   || '',
+    ad:         document.getElementById('ads-ad')?.value         || '',
+  };
+}
+
+function fillSelect(id, values) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const prev = el.value;
+  el.innerHTML = '<option value="">Todos</option>';
+  values.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if (v === prev) o.selected = true;
+    el.appendChild(o);
+  });
+}
+
+function onAdsFilterChange() { loadAds(); }
+
+function drawSparklineSVG(containerId, values, color) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const W = 200, H = 36, pad = 2;
+  if (!values || values.length < 2) { el.innerHTML = ''; return; }
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const xs = values.map((_, i) => pad + (i / (values.length - 1)) * (W - pad * 2));
+  const ys = values.map(v => H - pad - ((v - min) / range) * (H - pad * 2));
+  const pts = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  // smooth polyline using bezier via points
+  let d = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+  for (let i = 1; i < xs.length; i++) {
+    const cpx = (xs[i - 1] + xs[i]) / 2;
+    d += ` C ${cpx.toFixed(1)} ${ys[i-1].toFixed(1)}, ${cpx.toFixed(1)} ${ys[i].toFixed(1)}, ${xs[i].toFixed(1)} ${ys[i].toFixed(1)}`;
+  }
+  const fillPath = d + ` L ${xs[xs.length-1].toFixed(1)} ${H} L ${xs[0].toFixed(1)} ${H} Z`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sg_${containerId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    <path d="${fillPath}" fill="url(#sg_${containerId})"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+async function loadAds() {
+  const f = getAdsFilterValues();
+  const { dateFrom, dateTo } = f;
+
+  const loadingEl = document.getElementById('ads-loading');
+  const errorEl   = document.getElementById('ads-error');
+  if (loadingEl) loadingEl.style.display = 'flex';
+  if (errorEl)   errorEl.style.display   = 'none';
+
+  ['revenue','cost','clicks','ics','conv','roas','profit','cpc','cpi','cpa',
+   'hook','hold','aov','checkout-conv','upsell-conv','cpm','ctr'].forEach(k => {
+    const el = document.getElementById('ads-val-' + k);
+    if (el) el.textContent = '…';
+  });
+
+  try {
+    const params = new URLSearchParams({ tab: activeTab, date_from: dateFrom, date_to: dateTo });
+    if (f.plataforma) params.set('plataforma', f.plataforma);
+    if (f.conta)      params.set('conta',      f.conta);
+    if (f.campaign)   params.set('campaign',   f.campaign);
+    if (f.ad)         params.set('ad',         f.ad);
+
+    const res = await fetch(
+      `${SUPABASE_URL}/functions/v1/ads-performance-agencia?${params}`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (getSession()?.access_token || SUPABASE_KEY) } }
+    );
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+
+    adsData = json.rows || [];
+
+    if (json.filters) {
+      fillSelect('ads-plataforma', json.filters.plataformas || []);
+      fillSelect('ads-conta',      json.filters.contas      || []);
+      fillSelect('ads-campaign',   json.filters.campaigns   || []);
+      fillSelect('ads-ad',         json.filters.ads         || []);
+      // restore selections
+      if (f.plataforma) document.getElementById('ads-plataforma').value = f.plataforma;
+      if (f.conta)      document.getElementById('ads-conta').value      = f.conta;
+      if (f.campaign)   document.getElementById('ads-campaign').value   = f.campaign;
+      if (f.ad)         document.getElementById('ads-ad').value         = f.ad;
+    }
+
+    // ── Totals ──
+    let totRevenue = 0, totCost = 0, totClicks = 0, totIcs = 0, totConv = 0;
+    let totImpressions = 0, totWatched2s = 0, totP75 = 0, totUpsell = 0;
+    adsData.forEach(r => {
+      totRevenue     += parseFloat(r.revenue)             || 0;
+      totCost        += parseFloat(r.cost)                || 0;
+      totClicks      += parseInt(r.clicks)                || 0;
+      totIcs         += parseInt(r.ics)                   || 0;
+      totConv        += parseInt(r.conversions_purchase)  || 0;
+      totImpressions += parseInt(r.impressions)           || 0;
+      totWatched2s   += parseInt(r.video_watched_2s)      || 0;
+      totP75         += parseInt(r.video_views_p75)       || 0;
+      totUpsell      += parseInt(r.conversions_upsell)    || 0;
+    });
+    const totProfit    = totRevenue - totCost;
+    const roas         = totCost        > 0 ? totRevenue / totCost        : 0;
+    const cpc          = totClicks      > 0 ? totCost    / totClicks      : 0;
+    const cpi          = totIcs         > 0 ? totCost    / totIcs         : 0;
+    const cpa          = totConv        > 0 ? totCost    / totConv        : 0;
+    const hookRate     = totImpressions > 0 ? totWatched2s / totImpressions * 100 : 0;
+    const holdRate     = totWatched2s   > 0 ? totP75       / totWatched2s  * 100  : 0;
+    const aov          = totConv        > 0 ? totRevenue   / totConv               : 0;
+    const checkoutConv = totIcs         > 0 ? totConv      / totIcs        * 100  : 0;
+    const upsellConv   = totConv        > 0 ? totUpsell    / totConv       * 100  : 0;
+    const cpm          = totImpressions > 0 ? totCost      / totImpressions * 1000 : 0;
+    const ctr          = totImpressions > 0 ? totClicks    / totImpressions * 100  : 0;
+
+    const $v = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const nv = v => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    const pv = v => v.toFixed(2) + '%';
+
+    document.getElementById('ads-val-revenue').textContent      = $v(totRevenue);
+    document.getElementById('ads-val-cost').textContent         = $v(totCost);
+    document.getElementById('ads-val-clicks').textContent       = nv(totClicks);
+    document.getElementById('ads-val-ics').textContent          = nv(totIcs);
+    document.getElementById('ads-val-conv').textContent         = nv(totConv);
+    document.getElementById('ads-val-roas').textContent         = roas.toFixed(2);
+    document.getElementById('ads-val-profit').textContent       = $v(totProfit);
+    document.getElementById('ads-val-cpc').textContent          = $v(cpc);
+    document.getElementById('ads-val-cpi').textContent          = $v(cpi);
+    document.getElementById('ads-val-cpa').textContent          = $v(cpa);
+    document.getElementById('ads-val-hook').textContent         = pv(hookRate);
+    document.getElementById('ads-val-hold').textContent         = pv(holdRate);
+    document.getElementById('ads-val-aov').textContent          = $v(aov);
+    document.getElementById('ads-val-checkout-conv').textContent = pv(checkoutConv);
+    document.getElementById('ads-val-upsell-conv').textContent  = pv(upsellConv);
+    document.getElementById('ads-val-cpm').textContent          = $v(cpm);
+    document.getElementById('ads-val-ctr').textContent          = ctr.toFixed(2) + '%';
+
+    const profitEl = document.getElementById('ads-val-profit');
+    if (profitEl) profitEl.classList.toggle('negative', totProfit < 0);
+
+    // ── Sparklines: group by date, últimos 7 dias ──
+    const byDate = {};
+    adsData.forEach(r => {
+      const d = r.date;
+      if (!byDate[d]) byDate[d] = { revenue:0, cost:0, clicks:0, ics:0, conv:0, imp:0, w2s:0, p75:0, upsell:0 };
+      byDate[d].revenue += parseFloat(r.revenue)            || 0;
+      byDate[d].cost    += parseFloat(r.cost)               || 0;
+      byDate[d].clicks  += parseInt(r.clicks)               || 0;
+      byDate[d].ics     += parseInt(r.ics)                  || 0;
+      byDate[d].conv    += parseInt(r.conversions_purchase) || 0;
+      byDate[d].imp     += parseInt(r.impressions)          || 0;
+      byDate[d].w2s     += parseInt(r.video_watched_2s)     || 0;
+      byDate[d].p75     += parseInt(r.video_views_p75)      || 0;
+      byDate[d].upsell  += parseInt(r.conversions_upsell)   || 0;
+    });
+    const last7 = Object.keys(byDate).sort().slice(-7);
+    const sp = k => last7.map(d => byDate[d][k] || 0);
+    const spRoas        = last7.map(d => byDate[d].cost   > 0 ? byDate[d].revenue / byDate[d].cost   : 0);
+    const spProfit      = last7.map(d => byDate[d].revenue - byDate[d].cost);
+    const spCpc         = last7.map(d => byDate[d].clicks > 0 ? byDate[d].cost    / byDate[d].clicks : 0);
+    const spCpi         = last7.map(d => byDate[d].ics    > 0 ? byDate[d].cost    / byDate[d].ics    : 0);
+    const spCpa         = last7.map(d => byDate[d].conv   > 0 ? byDate[d].cost    / byDate[d].conv   : 0);
+    const spHook        = last7.map(d => byDate[d].imp    > 0 ? byDate[d].w2s     / byDate[d].imp    * 100 : 0);
+    const spHold        = last7.map(d => byDate[d].w2s    > 0 ? byDate[d].p75     / byDate[d].w2s    * 100 : 0);
+    const spAov         = last7.map(d => byDate[d].conv   > 0 ? byDate[d].revenue / byDate[d].conv        : 0);
+    const spCheckout    = last7.map(d => byDate[d].ics    > 0 ? byDate[d].conv    / byDate[d].ics    * 100 : 0);
+    const spUpsellConv  = last7.map(d => byDate[d].conv   > 0 ? byDate[d].upsell  / byDate[d].conv   * 100 : 0);
+
+    const spCpm        = last7.map(d => byDate[d].imp     > 0 ? byDate[d].cost    / byDate[d].imp    * 1000 : 0);
+    const spCtr        = last7.map(d => byDate[d].imp     > 0 ? byDate[d].clicks  / byDate[d].imp    * 100  : 0);
+
+    drawSparklineSVG('spark-revenue',      sp('revenue'), '#7c3aed');
+    drawSparklineSVG('spark-cost',         sp('cost'),    '#f97316');
+    drawSparklineSVG('spark-clicks',       sp('clicks'),  '#38bdf8');
+    drawSparklineSVG('spark-ics',          sp('ics'),     '#a78bfa');
+    drawSparklineSVG('spark-conv',         sp('conv'),    '#34d399');
+    drawSparklineSVG('spark-roas',         spRoas,        '#7c3aed');
+    drawSparklineSVG('spark-profit',       spProfit,      '#34d399');
+    drawSparklineSVG('spark-cpc',          spCpc,         '#38bdf8');
+    drawSparklineSVG('spark-cpi',          spCpi,         '#a78bfa');
+    drawSparklineSVG('spark-cpa',          spCpa,         '#f97316');
+    drawSparklineSVG('spark-hook',         spHook,        '#f59e0b');
+    drawSparklineSVG('spark-hold',         spHold,        '#ec4899');
+    drawSparklineSVG('spark-aov',          spAov,         '#7c3aed');
+    drawSparklineSVG('spark-checkout-conv',spCheckout,    '#34d399');
+    drawSparklineSVG('spark-upsell-conv',  spUpsellConv,  '#38bdf8');
+    drawSparklineSVG('spark-cpm',          spCpm,         '#f59e0b');
+    drawSparklineSVG('spark-ctr',          spCtr,         '#06b6d4');
+
+    renderAdsGranular(adsData);
+    renderAdsPivots(adsData, f.dateTo);
+    renderAdsCharts(adsData);
+
+    // Restaurar highlight nas linhas se houver filtro de campanha ativo
+    const activeCampaign = f.campaign;
+    if (activeCampaign) {
+      document.querySelectorAll('.ads-clickable-row').forEach(r => {
+        if (r.dataset.campaign === activeCampaign) r.classList.add('ads-row-active');
+      });
+    }
+
+  } catch (err) {
+    if (errorEl) { errorEl.textContent = 'Erro ao carregar tráfego: ' + err.message; errorEl.style.display = 'block'; }
+    console.error('loadAds error:', err);
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+  }
+}
+
+const adsChartInstances = {};
+
+// Paleta de cores para múltiplas campanhas
+const ADS_PALETTE = [
+  '#7c3aed','#38bdf8','#34d399','#f97316','#ec4899',
+  '#a78bfa','#f59e0b','#06b6d4','#84cc16','#f43f5e',
+  '#8b5cf6','#0ea5e9','#10b981','#fb923c','#e879f9',
+];
+
+function renderAdsCharts(rows) {
+  const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const fmtDate = d => { const [,mm,dd] = d.split('-'); return `${dd}-${MONTHS[parseInt(mm,10)-1]}`; };
+
+  // Agrupar por campanha → data
+  const byCamp = {};
+  rows.forEach(r => {
+    const c = r.campaign_name || '(sem campanha)';
+    const d = r.date;
+    if (!byCamp[c]) byCamp[c] = {};
+    if (!byCamp[c][d]) byCamp[c][d] = { cost:0, clicks:0, ics:0, revenue:0 };
+    byCamp[c][d].cost    += parseFloat(r.cost)    || 0;
+    byCamp[c][d].clicks  += parseInt(r.clicks)    || 0;
+    byCamp[c][d].ics     += parseInt(r.ics)        || 0;
+    byCamp[c][d].revenue += parseFloat(r.revenue) || 0;
+  });
+
+  // Todos os dias do período, ordenados
+  const allDates = [...new Set(rows.map(r => r.date))].sort();
+  const labels   = allDates.map(fmtDate);
+  const campaigns = Object.keys(byCamp).sort();
+
+  // Construir datasets por campanha
+  function buildDatasets(metricFn) {
+    return campaigns.map((c, i) => ({
+      label: c,
+      data: allDates.map(d => {
+        const day = byCamp[c][d];
+        return day ? metricFn(day) : null;
+      }),
+      borderColor: ADS_PALETTE[i % ADS_PALETTE.length],
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: allDates.length > 30 ? 0 : 3,
+      pointHoverRadius: 5,
+      tension: 0.35,
+      spanGaps: false,
+    }));
+  }
+
+  const chartDefs = [
+    {
+      id: 'ads-chart-roas',
+      title: 'ROAS',
+      prefix: '', decimals: 2,
+      metricFn: d => d.cost > 0 ? d.revenue / d.cost : null,
+    },
+    {
+      id: 'ads-chart-cpc',
+      title: 'CPC ($)',
+      prefix: '$', decimals: 2,
+      metricFn: d => d.clicks > 0 ? d.cost / d.clicks : null,
+    },
+    {
+      id: 'ads-chart-cpi',
+      title: 'CPI ($)',
+      prefix: '$', decimals: 2,
+      metricFn: d => d.ics > 0 ? d.cost / d.ics : null,
+    },
+  ];
+
+  chartDefs.forEach(({ id, prefix, decimals, metricFn }) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (adsChartInstances[id]) adsChartInstances[id].destroy();
+
+    adsChartInstances[id] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: buildDatasets(metricFn) },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: campaigns.length <= 8,
+            position: 'bottom',
+            labels: { color: '#718096', font: { size: 10 }, boxWidth: 12, padding: 8 }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.parsed.y !== null
+                ? ` ${ctx.dataset.label}: ${prefix}${ctx.parsed.y.toFixed(decimals)}`
+                : null
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
+            grid: { color: 'rgba(255,255,255,.04)' }
+          },
+          y: {
+            ticks: { color: '#718096', font: { size: 10 }, callback: v => prefix + v.toFixed(decimals) },
+            grid: { color: 'rgba(255,255,255,.06)' }
+          }
+        }
+      }
+    });
+  });
+}
+
+function renderAdsGranular(rows) {
+  const el = document.getElementById('ads-table-granular');
+  if (!el) return;
+  if (!rows || rows.length === 0) { el.innerHTML = '<div class="empty">Sem dados no período.</div>'; return; }
+
+  // Agregar por ad_name
+  const byAd = {};
+  rows.forEach(r => {
+    const k = r.ad_name || '(sem nome)';
+    if (!byAd[k]) byAd[k] = { revenue:0, cost:0, conv_main:0, conv_upsell:0, clicks:0, ics:0, imp:0, w2s:0, p75:0, pitch_ret_sum:0, pitch_ret_n:0, vsl_play:0 };
+    const a = byAd[k];
+    a.revenue     += parseFloat(r.revenue)            || 0;
+    a.cost        += parseFloat(r.cost)               || 0;
+    a.conv_main   += parseInt(r.conversions_purchase) || 0;
+    a.conv_upsell += parseInt(r.conversions_upsell)   || 0;
+    a.clicks      += parseInt(r.clicks)               || 0;
+    a.ics         += parseInt(r.ics)                  || 0;
+    a.imp         += parseInt(r.impressions)          || 0;
+    a.w2s         += parseInt(r.video_watched_2s)     || 0;
+    a.p75         += parseInt(r.video_views_p75)      || 0;
+    a.vsl_play    += parseInt(r.vsl_play)             || 0;
+    // pitch_retention é uma média ponderada pelo vsl_view
+    const vv = parseInt(r.vsl_view) || 0;
+    a.pitch_ret_sum += (parseFloat(r.pitch_retention) || 0) * vv;
+    a.pitch_ret_n   += vv;
+  });
+
+  const $v = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pv = v => v.toFixed(1) + '%';
+
+  const sorted = Object.entries(byAd).sort((a,b) => b[1].cost - a[1].cost);
+
+  let html = `<table class="data-table">
+    <thead><tr>
+      <th style="min-width:160px">Anúncio</th>
+      <th>Receita</th><th>Custo</th>
+      <th>Conv. Main</th><th>Conv. Upsell</th>
+      <th>CPA</th><th>ROAS</th>
+      <th>Cliques</th><th>CPC</th>
+      <th>ICs</th><th>CPI</th>
+      <th>Pitch Ret.</th><th>VSL Play CPA</th>
+      <th>CPM</th><th>CTR</th>
+    </tr></thead><tbody>`;
+
+  sorted.forEach(([name, a]) => {
+    const cpa          = a.conv_main > 0 ? a.cost / a.conv_main : 0;
+    const roas         = a.cost      > 0 ? a.revenue / a.cost   : 0;
+    const cpc          = a.clicks    > 0 ? a.cost / a.clicks    : 0;
+    const cpi          = a.ics       > 0 ? a.cost / a.ics       : 0;
+    const pitchRet     = a.pitch_ret_n > 0 ? a.pitch_ret_sum / a.pitch_ret_n : 0;
+    const vslPlayCpa   = a.vsl_play  > 0 ? a.cost / a.vsl_play  : 0;
+    const cpm          = a.imp       > 0 ? a.cost / a.imp * 1000 : 0;
+    const ctr          = a.imp       > 0 ? a.clicks / a.imp * 100 : 0;
+    const roasColor    = roas >= 2 ? 'var(--accent)' : roas >= 1 ? '#f59e0b' : 'var(--warn)';
+    const shortName    = name.length > 28 ? name.slice(0, 27) + '…' : name;
+    // Primeiro campaign_name associado a este ad_name
+    const campaignForAd = (rows.find(r => r.ad_name === name) || {}).campaign_name || '';
+    const campEsc = campaignForAd.replace(/"/g, '&quot;');
+    html += `<tr class="ads-clickable-row" data-campaign="${campEsc}" onclick="adsRowClick(this,'campaign')">
+      <td title="${name}" style="font-family:var(--font-mono);font-size:.72rem">${shortName}</td>
+      <td>${$v(a.revenue)}</td>
+      <td>${$v(a.cost)}</td>
+      <td>${a.conv_main.toLocaleString()}</td>
+      <td>${a.conv_upsell.toLocaleString()}</td>
+      <td>${$v(cpa)}</td>
+      <td style="color:${roasColor};font-weight:700">${roas.toFixed(2)}</td>
+      <td>${a.clicks.toLocaleString()}</td>
+      <td>${$v(cpc)}</td>
+      <td>${a.ics.toLocaleString()}</td>
+      <td>${$v(cpi)}</td>
+      <td>${pv(pitchRet)}</td>
+      <td>${$v(vslPlayCpa)}</td>
+      <td>${$v(cpm)}</td>
+      <td>${ctr.toFixed(2)}%</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderAdsPivots(rows, dateTo) {
+  // Calcular os últimos 7 dias a partir de dateTo
+  const endDate  = dateTo ? new Date(dateTo + 'T00:00:00') : new Date();
+  const last7    = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(endDate);
+    d.setDate(d.getDate() - i);
+    last7.push(d.toISOString().split('T')[0]);
+  }
+
+  // Agregar por campanha + dia
+  const byCampDay = {}; // { campaign: { date: { revenue, cost, conv, ... } } }
+  rows.forEach(r => {
+    if (!last7.includes(r.date)) return;
+    const c = r.campaign_name || '(sem campanha)';
+    if (!byCampDay[c]) byCampDay[c] = {};
+    if (!byCampDay[c][r.date]) byCampDay[c][r.date] = { revenue:0, cost:0, conv:0 };
+    byCampDay[c][r.date].revenue += parseFloat(r.revenue) || 0;
+    byCampDay[c][r.date].cost    += parseFloat(r.cost)    || 0;
+    byCampDay[c][r.date].conv    += parseInt(r.conversions_purchase) || 0;
+  });
+
+  const campaigns = Object.keys(byCampDay).sort();
+  const $v = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const shortDate = d => {
+    const [,mm,dd] = d.split('-');
+    return `${dd}-${MONTHS[parseInt(mm,10)-1]}`;
+  };
+
+  function buildPivot(metric, formatFn, colorFn) {
+    if (campaigns.length === 0) return '<div class="empty">Sem dados no período.</div>';
+    let html = `<table class="data-table"><thead><tr>
+      <th style="min-width:160px">Campanha</th>`;
+    last7.forEach(d => { html += `<th style="text-align:right">${shortDate(d)}</th>`; });
+    html += `<th style="text-align:right">Total</th></tr></thead><tbody>`;
+
+    campaigns.forEach(c => {
+      let total = 0, totalCost = 0, totalConv = 0;
+      const cells = last7.map(d => {
+        const day = byCampDay[c][d];
+        if (!day) return { val: null, display: '—' };
+        let val;
+        if (metric === 'roas') {
+          val = day.cost > 0 ? day.revenue / day.cost : 0;
+        } else if (metric === 'revenue') {
+          val = day.revenue; total += day.revenue;
+        } else {
+          val = day.cost; total += day.cost;
+        }
+        if (metric === 'roas') { totalCost += day.cost; totalConv += day.revenue; }
+        return { val, display: formatFn(val) };
+      });
+
+      let totalDisplay;
+      if (metric === 'roas') {
+        const t = totalCost > 0 ? totalConv / totalCost : 0;
+        totalDisplay = t.toFixed(2);
+      } else {
+        totalDisplay = $v(total);
+      }
+
+      const shortName = c.length > 28 ? c.slice(0, 27) + '…' : c;
+      const campEsc = c.replace(/"/g, '&quot;');
+      html += `<tr class="ads-clickable-row" data-campaign="${campEsc}" onclick="adsRowClick(this,'campaign')"><td title="${c}" style="font-family:var(--font-mono);font-size:.72rem">${shortName}</td>`;
+      cells.forEach(cell => {
+        if (cell.val === null) {
+          html += `<td style="text-align:right;color:var(--text-3)">—</td>`;
+        } else {
+          const color = colorFn ? colorFn(cell.val) : '';
+          html += `<td style="text-align:right;font-family:var(--font-mono);font-size:.78rem;${color}">${cell.display}</td>`;
+        }
+      });
+      html += `<td style="text-align:right;font-family:var(--font-mono);font-size:.78rem;font-weight:700">${totalDisplay}</td></tr>`;
+    });
+
+    html += '</tbody></table>';
+    return html;
+  }
+
+  const roasColor = v => v >= 2 ? 'color:var(--accent);font-weight:700' : v >= 1 ? 'color:#f59e0b' : 'color:var(--warn)';
+
+  document.getElementById('ads-pivot-roas').innerHTML    = buildPivot('roas',    v => v.toFixed(2), roasColor);
+  document.getElementById('ads-pivot-revenue').innerHTML = buildPivot('revenue', v => $v(v), null);
+  document.getElementById('ads-pivot-cost').innerHTML    = buildPivot('cost',    v => $v(v), null);
+}
+
+// ── FLUXO DE CAIXA ──────────────────────────────────────────────────
+let cashflowChartInstance = null;
+const cfMetricCharts = {};
+
+async function loadCashflow() {
+  const dateFrom = document.getElementById('date-from').value;
+  const dateTo   = document.getElementById('date-to').value;
+  const tableEl  = document.getElementById('cashflow-table');
+  const canvas   = document.getElementById('cashflow-chart');
+  if (tableEl) tableEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
+
+  try {
+    const params = new URLSearchParams({ tab: activeTab, date_from: dateFrom, date_to: dateTo, tz: getTz() });
+    const res = await fetch(
+      `${SUPABASE_URL}/functions/v1/cash-flow-agencia?${params}`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (getSession()?.access_token || SUPABASE_KEY) } }
+    );
+    const rows = await res.json();
+    if (rows.error) throw new Error(rows.error);
+
+    // ── Gráfico ──
+    if (canvas) {
+      if (cashflowChartInstance) cashflowChartInstance.destroy();
+      const sorted  = [...rows].reverse(); // crescente para o gráfico
+      const labels  = sorted.map(r => {
+        const [,mm,dd] = r.dia.split('-');
+        const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+        return `${dd}-${MONTHS[parseInt(mm,10)-1]}`;
+      });
+
+      cashflowChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Faturamento',
+              data: sorted.map(r => parseFloat(r.faturamento) || 0),
+              backgroundColor: 'rgba(124,58,237,0.7)',
+              stack: 'entradas',
+            },
+            {
+              label: 'Recorrências',
+              data: sorted.map(r => parseFloat(r.receita_recorrente) || 0),
+              backgroundColor: 'rgba(52,211,153,0.7)',
+              stack: 'entradas',
+            },
+            {
+              label: 'Reembolsos + Taxa',
+              data: sorted.map(r => -((parseFloat(r.valor_reembolsado) || 0) + (parseFloat(r.taxa_refund) || 0))),
+              backgroundColor: 'rgba(249,115,22,0.7)',
+              stack: 'saidas',
+            },
+            {
+              label: 'Chargebacks + Taxa',
+              data: sorted.map(r => -((parseFloat(r.valor_chargeback) || 0) + (parseFloat(r.taxa_chargeback) || 0))),
+              backgroundColor: 'rgba(239,68,68,0.7)',
+              stack: 'saidas',
+            },
+            {
+              label: 'CB Prevention',
+              data: sorted.map(r => -(parseFloat(r.valor_cbp) || 0)),
+              backgroundColor: 'rgba(190,18,60,0.7)',
+              stack: 'saidas',
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#718096', font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const v = Math.abs(ctx.parsed.y);
+                  return ` ${ctx.dataset.label}: $${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, ticks: { color: '#718096', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,.04)' } },
+            y: { stacked: true, ticks: { color: '#718096', font: { size: 10 }, callback: v => '$' + v.toLocaleString('en-US') }, grid: { color: 'rgba(255,255,255,.06)' } }
+          }
+        }
+      });
+    }
+
+    // ── Gráfico ──
+    if (canvas) {
+      if (cashflowChartInstance) cashflowChartInstance.destroy();
+      const sorted  = [...rows].reverse(); // crescente para o gráfico
+      const labels  = sorted.map(r => {
+        const [,mm,dd] = r.dia.split('-');
+        const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+        return `${dd}-${MONTHS[parseInt(mm,10)-1]}`;
+      });
+
+      cashflowChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Faturamento',
+              data: sorted.map(r => parseFloat(r.faturamento) || 0),
+              backgroundColor: 'rgba(124,58,237,0.7)',
+              stack: 'entradas',
+            },
+            {
+              label: 'Recorrências',
+              data: sorted.map(r => parseFloat(r.receita_recorrente) || 0),
+              backgroundColor: 'rgba(52,211,153,0.7)',
+              stack: 'entradas',
+            },
+            {
+              label: 'Reembolsos + Taxa',
+              data: sorted.map(r => -((parseFloat(r.valor_reembolsado) || 0) + (parseFloat(r.taxa_refund) || 0))),
+              backgroundColor: 'rgba(249,115,22,0.7)',
+              stack: 'saidas',
+            },
+            {
+              label: 'Chargebacks + Taxa',
+              data: sorted.map(r => -((parseFloat(r.valor_chargeback) || 0) + (parseFloat(r.taxa_chargeback) || 0))),
+              backgroundColor: 'rgba(239,68,68,0.7)',
+              stack: 'saidas',
+            },
+            {
+              label: 'CB Prevention',
+              data: sorted.map(r => -(parseFloat(r.valor_cbp) || 0)),
+              backgroundColor: 'rgba(190,18,60,0.7)',
+              stack: 'saidas',
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#718096', font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const v = Math.abs(ctx.parsed.y);
+                  return ` ${ctx.dataset.label}: $${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, ticks: { color: '#718096', font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,.04)' } },
+            y: { stacked: true, ticks: { color: '#718096', font: { size: 10 }, callback: v => '$' + v.toLocaleString('en-US') }, grid: { color: 'rgba(255,255,255,.06)' } }
+          }
+        }
+      });
+    }
+
+    // ── 3 gráficos de métricas ──
+    {
+      const sorted = [...rows].reverse();
+      const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      const labels = sorted.map(r => {
+        const [,mm,dd] = r.dia.split('-');
+        return `${dd}-${MONTHS[parseInt(mm,10)-1]}`;
+      });
+
+      // Paginação: mostrar apenas últimos 30 dias para não poluir
+      const MAX_BARS = 30;
+      const labelsP  = labels.slice(-MAX_BARS);
+
+      function buildCfMetricChart(id, datasets, yPrefix) {
+        const c = document.getElementById(id);
+        if (!c) return;
+        if (cfMetricCharts[id]) cfMetricCharts[id].destroy();
+        cfMetricCharts[id] = new Chart(c.getContext('2d'), {
+          type: 'bar',
+          data: { labels: labelsP, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#718096', font: { size: 10 }, boxWidth: 10, padding: 8 } },
+              tooltip: {
+                callbacks: {
+                  label: ctx => ` ${ctx.dataset.label}: ${yPrefix}${Math.abs(ctx.parsed.y).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                }
+              }
+            },
+            scales: {
+              x: { stacked: true, ticks: { color: '#718096', font: { size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,.04)' } },
+              y: { stacked: true, ticks: { color: '#718096', font: { size: 9 }, callback: v => yPrefix + v.toLocaleString('en-US') }, grid: { color: 'rgba(255,255,255,.06)' } }
+            }
+          }
+        });
+      }
+
+      // a. Saldo líquido — uma barra, verde se positivo, vermelho se negativo
+      const saldoData = sorted.slice(-MAX_BARS).map(r => parseFloat(r.saldo_liquido) || 0);
+      buildCfMetricChart('cf-chart-saldo', [{
+        label: 'Saldo Líquido',
+        data: saldoData,
+        backgroundColor: saldoData.map(v => v >= 0 ? 'rgba(52,211,153,0.75)' : 'rgba(239,68,68,0.75)'),
+        borderRadius: 3,
+      }], '$');
+
+      // b. Faturamento total = novas subs + recorrências + linha de total
+      buildCfMetricChart('cf-chart-faturamento', [
+        {
+          label: 'Novas Subs',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.faturamento) || 0),
+          backgroundColor: 'rgba(124,58,237,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Recorrências',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.receita_recorrente) || 0),
+          backgroundColor: 'rgba(52,211,153,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Total',
+          data: sorted.slice(-MAX_BARS).map(r => (parseFloat(r.faturamento)||0) + (parseFloat(r.receita_recorrente)||0)),
+          type: 'line',
+          borderColor: 'rgba(255,255,255,0.8)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          stack: undefined,
+          order: -1,
+        },
+      ], '$');
+
+      // c. Perdas = refunds + taxa refund + chargebacks + taxa chargeback
+      buildCfMetricChart('cf-chart-perdas', [
+        {
+          label: 'Reembolsos',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.valor_reembolsado) || 0),
+          backgroundColor: 'rgba(249,115,22,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Taxa Refund',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.taxa_refund) || 0),
+          backgroundColor: 'rgba(251,191,36,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Chargebacks',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.valor_chargeback) || 0),
+          backgroundColor: 'rgba(239,68,68,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Taxa CB',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.taxa_chargeback) || 0),
+          backgroundColor: 'rgba(190,18,60,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'CB Prevention',
+          data: sorted.slice(-MAX_BARS).map(r => parseFloat(r.valor_cbp) || 0),
+          backgroundColor: 'rgba(127,0,55,0.75)',
+          stack: 's',
+          borderRadius: 2,
+        },
+        {
+          label: 'Total',
+          data: sorted.slice(-MAX_BARS).map(r =>
+            (parseFloat(r.valor_reembolsado)||0) + (parseFloat(r.taxa_refund)||0) +
+            (parseFloat(r.valor_chargeback)||0) + (parseFloat(r.taxa_chargeback)||0) +
+            (parseFloat(r.valor_cbp)||0)
+          ),
+          type: 'line',
+          borderColor: 'rgba(255,255,255,0.8)',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+          stack: undefined,
+          order: -1,
+        },
+      ], '$');
+    }
+
+    // ── Tabela ──
+    if (!tableEl) return;
+    if (!rows.length) { tableEl.innerHTML = '<div class="empty">Sem dados no período.</div>'; return; }
+
+    const $v = v => v === 0 ? '—' : '$' + parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const ni = v => v === 0 ? '—' : parseInt(v).toLocaleString();
+
+    let html = `<table class="data-table">
+      <thead><tr>
+        <th>Data</th>
+        <th>Novas Subs</th>
+        <th>Faturamento</th>
+        <th>Recorrências</th>
+        <th>Receita Recorrente</th>
+        <th style="color:var(--accent)">Total Entradas</th>
+        <th>Refunds</th>
+        <th>Valor Reembolsado</th>
+        <th>Taxa Refund</th>
+        <th>Chargebacks</th>
+        <th>Valor CB</th>
+        <th>Taxa CB</th>
+        <th>CB Prevention</th>
+        <th>Qtd CBP</th>
+        <th style="color:var(--warn)">Total Saídas</th>
+        <th>Saldo Líquido</th>
+      </tr></thead><tbody>`;
+
+    rows.forEach(r => {
+      const saldo = parseFloat(r.saldo_liquido) || 0;
+      const saldoColor = saldo >= 0 ? 'var(--accent)' : 'var(--warn)';
+      const totalEntradas = parseFloat(r.total_entradas) || 0;
+      const totalSaidas   = parseFloat(r.total_saidas)   || 0;
+
+      // Só mostrar linhas com algum movimento
+      if (totalEntradas === 0 && totalSaidas === 0) return;
+
+      const [,mm,dd] = r.dia.split('-');
+      const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      const diaFmt = `${dd}-${MONTHS[parseInt(mm,10)-1]}`;
+
+      html += `<tr>
+        <td style="font-family:var(--font-mono);font-size:.78rem">${diaFmt}</td>
+        <td>${ni(r.novas_subs)}</td>
+        <td>${$v(r.faturamento)}</td>
+        <td>${ni(r.qtd_recorrencias)}</td>
+        <td>${$v(r.receita_recorrente)}</td>
+        <td style="font-weight:700;color:var(--accent)">${$v(r.total_entradas)}</td>
+        <td>${ni(r.qtd_refunds)}</td>
+        <td>${r.qtd_refunds > 0 ? '$' + parseFloat(r.valor_reembolsado).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+        <td>${r.qtd_refunds > 0 ? '$' + parseFloat(r.taxa_refund).toFixed(2) : '—'}</td>
+        <td>${ni(r.qtd_chargebacks)}</td>
+        <td>${r.qtd_chargebacks > 0 ? '$' + parseFloat(r.valor_chargeback).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+        <td>${r.qtd_chargebacks > 0 ? '$' + parseFloat(r.taxa_chargeback).toFixed(2) : '—'}</td>
+        <td>${r.qtd_cbp > 0 ? '$' + parseFloat(r.valor_cbp).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+        <td>${ni(r.qtd_cbp)}</td>
+        <td style="font-weight:700;color:var(--warn)">${totalSaidas > 0 ? '$' + totalSaidas.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+        <td style="font-weight:700;color:${saldoColor}">$${saldo.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    tableEl.innerHTML = html;
+
+  } catch (err) {
+    if (tableEl) tableEl.innerHTML = `<div class="empty">Erro: ${err.message}</div>`;
+    console.error('loadCashflow error:', err);
+  }
+}
+
+// ── ADS ROW CLICK FILTER ────────────────────────────────────────────
+function adsRowClick(tr, filterType) {
+  const value = tr.dataset[filterType] || ''; // ex: data-campaign
+  const selectId = filterType === 'campaign' ? 'ads-campaign' : 'ads-conta';
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const isActive = tr.classList.contains('ads-row-active');
+
+  // Remover highlight de todas as linhas clicáveis de ads
+  document.querySelectorAll('.ads-clickable-row').forEach(r => r.classList.remove('ads-row-active'));
+
+  if (isActive) {
+    // 2º clique na mesma linha: limpa o filtro
+    select.value = '';
+  } else {
+    // 1º clique: ativa linha e seta filtro
+    tr.classList.add('ads-row-active');
+    // Garante que a opção existe no select antes de setar
+    const exists = Array.from(select.options).some(o => o.value === value);
+    if (!exists && value) {
+      const opt = document.createElement('option');
+      opt.value = value; opt.textContent = value;
+      select.appendChild(opt);
+    }
+    select.value = value;
+  }
+
+  loadAds();
+}
+
+
+// ── SORT ─────────────────────────────────────────────────────────────
+// ── SORTING GLOBAL ──────────────────────────────────────────────────
+const sortState = new WeakMap();
+
+function attachSortToTable(table) {
+  if (table.dataset.sortAttached) return;
+  table.dataset.sortAttached = 'true';
+
+  const ths = table.querySelectorAll('thead th');
+  ths.forEach((th, colIndex) => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', function() {
+      const prev = sortState.get(table) || { colIndex: -1, direction: null };
+      let direction;
+      if (prev.colIndex !== colIndex || prev.direction === null) {
+        direction = 'desc';
+      } else if (prev.direction === 'desc') {
+        direction = 'asc';
+      } else {
+        direction = null;
+      }
+      sortState.set(table, { colIndex, direction });
+
+      // Limpar indicadores
+      ths.forEach(t => t.removeAttribute('data-sort'));
+
+      if (direction !== null) {
+        th.setAttribute('data-sort', direction);
+        sortTableRows(table, colIndex, direction);
+      } else {
+        restoreOriginalOrder(table);
+      }
+    });
+  });
+}
+
+function parseCellValue(cell) {
+  const text = cell.textContent.trim().replace(/[↓↑]/g, '');
+  if (text === '—' || text === '') return null;
+  const clean = text.replace(/[$%,\s]/g, '');
+  const num = parseFloat(clean);
+  return isNaN(num) ? text.toLowerCase() : num;
+}
+
+function sortTableRows(table, colIndex, direction) {
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  if (!table.dataset.originalOrder) {
+    rows.forEach((r, i) => r.dataset.originalIndex = i);
+    table.dataset.originalOrder = '1';
+  }
+  rows.sort((a, b) => {
+    const va = parseCellValue(a.children[colIndex]);
+    const vb = parseCellValue(b.children[colIndex]);
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number')
+      return direction === 'desc' ? vb - va : va - vb;
+    const cmp = String(va).localeCompare(String(vb));
+    return direction === 'desc' ? -cmp : cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function restoreOriginalOrder(table) {
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => parseInt(a.dataset.originalIndex || 0) - parseInt(b.dataset.originalIndex || 0));
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// Observar o DOM para anexar sorting em tabelas novas (geradas dinamicamente)
+const sortObserver = new MutationObserver(mutations => {
+  mutations.forEach(m => {
+    m.addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      // Se o nó adicionado é uma tabela
+      if (node.tagName === 'TABLE') attachSortToTable(node);
+      // Ou se contém tabelas
+      node.querySelectorAll && node.querySelectorAll('table').forEach(attachSortToTable);
+    });
+  });
+});
+
+sortObserver.observe(document.body, { childList: true, subtree: true });
+
+// Anexar às tabelas já existentes no DOM
+document.querySelectorAll('table').forEach(attachSortToTable);
+
+// ── INIT ─────────────────────────────────────────────────────────────
+(function() {
+  const session = getSession();
+  if (session?.access_token) { showApp(); loadAds(); }
+})();
+</script>
+</body>
+</html>
