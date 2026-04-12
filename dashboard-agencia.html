@@ -729,9 +729,7 @@ function getSession() {
 function saveSession(s) { localStorage.setItem(AUTH_KEY, JSON.stringify(s)); }
 function clearSession()  { localStorage.removeItem(AUTH_KEY); }
 
-const AGENCIA_PASSWORD = 'agencia@dashboard';
-const SUPABASE_EMAIL   = 'atlas@dratlasdigitalgroup.com';
-const SUPABASE_PASS    = 'agencia@dashboard';
+const SUPABASE_EMAIL = 'atlas@dratlasdigitalgroup.com';
 
 async function doLogin() {
   const password = document.getElementById('login-password').value;
@@ -739,22 +737,18 @@ async function doLogin() {
   const btn      = document.getElementById('btn-login');
   errEl.textContent = '';
 
-  // Verificação local da senha
-  if (password !== AGENCIA_PASSWORD) {
-    errEl.textContent = 'Senha incorreta.';
-    return;
-  }
+  if (!password) { errEl.textContent = 'Digite a senha.'; return; }
 
   btn.disabled = true; btn.textContent = 'Entrando…';
   try {
     const resp = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-      body: JSON.stringify({ email: SUPABASE_EMAIL, password: SUPABASE_PASS })
+      body: JSON.stringify({ email: SUPABASE_EMAIL, password })
     });
     const data = await resp.json();
     if (!resp.ok || data.error) {
-      errEl.textContent = 'Erro ao autenticar. Tente novamente.';
+      errEl.textContent = 'Senha incorreta.';
       btn.disabled = false; btn.textContent = 'Entrar'; return;
     }
     saveSession({ access_token: data.access_token, email: SUPABASE_EMAIL });
@@ -1305,7 +1299,7 @@ async function loadCashflow() {
   if (tableEl) tableEl.innerHTML = '<div class="loading"><div class="spinner"></div> Carregando…</div>';
 
   try {
-    const params = new URLSearchParams({ tab: activeTab, date_from: dateFrom, date_to: dateTo, tz: getTz() });
+    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, tz: getTz() });
     const res = await fetch(
       `${SUPABASE_URL}/functions/v1/cash-flow-agencia?${params}`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (getSession()?.access_token || SUPABASE_KEY) } }
