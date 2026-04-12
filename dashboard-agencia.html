@@ -692,7 +692,7 @@
 
       <!-- GRÁFICOS: ROAS / CPC / CPI -->
       <div class="subsection-title ads-subsection" style="margin-top:36px;">Tendência do Período</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:4px;" id="ads-charts-row">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;" id="ads-charts-row">
         <div class="chart-card">
           <div class="chart-card-title">ROAS</div>
           <div style="position:relative;height:220px;">
@@ -709,6 +709,12 @@
           <div class="chart-card-title">CPI ($)</div>
           <div style="position:relative;height:220px;">
             <canvas id="ads-chart-cpi"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">CPM ($)</div>
+          <div style="position:relative;height:220px;">
+            <canvas id="ads-chart-cpm"></canvas>
           </div>
         </div>
       </div>
@@ -990,7 +996,7 @@ async function loadAds() {
 
     renderAdsGranular(adsData);
     renderAdsPivots(adsData, f.dateTo);
-    renderAdsCharts(adsData);
+    renderAdsCharts(adsData, f.dateTo);
 
     // Restaurar highlight nas linhas se houver filtro de campanha ativo
     const activeCampaign = f.campaign;
@@ -1017,7 +1023,7 @@ const ADS_PALETTE = [
   '#8b5cf6','#0ea5e9','#10b981','#fb923c','#e879f9',
 ];
 
-function renderAdsCharts(rows) {
+function renderAdsCharts(rows, dateTo) {
   const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const fmtDate = d => { const [,mm,dd] = d.split('-'); return `${dd}-${MONTHS[parseInt(mm,10)-1]}`; };
 
@@ -1027,16 +1033,23 @@ function renderAdsCharts(rows) {
     const c = r.campaign_name || '(sem campanha)';
     const d = r.date;
     if (!byCamp[c]) byCamp[c] = {};
-    if (!byCamp[c][d]) byCamp[c][d] = { cost:0, clicks:0, ics:0, revenue:0 };
-    byCamp[c][d].cost    += parseFloat(r.cost)    || 0;
-    byCamp[c][d].clicks  += parseInt(r.clicks)    || 0;
-    byCamp[c][d].ics     += parseInt(r.ics)        || 0;
-    byCamp[c][d].revenue += parseFloat(r.revenue) || 0;
+    if (!byCamp[c][d]) byCamp[c][d] = { cost:0, clicks:0, ics:0, revenue:0, impressions:0 };
+    byCamp[c][d].cost        += parseFloat(r.cost)        || 0;
+    byCamp[c][d].clicks      += parseInt(r.clicks)        || 0;
+    byCamp[c][d].ics         += parseInt(r.ics)           || 0;
+    byCamp[c][d].revenue     += parseFloat(r.revenue)     || 0;
+    byCamp[c][d].impressions += parseInt(r.impressions)   || 0;
   });
 
-  // Todos os dias do período, ordenados
-  const allDates = [...new Set(rows.map(r => r.date))].sort();
-  const labels   = allDates.map(fmtDate);
+  // Últimos 7 dias antes da data final do filtro
+  const endDate   = dateTo || new Date().toISOString().split('T')[0];
+  const end       = new Date(endDate + 'T00:00:00');
+  const last7     = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(end); d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
+  const allDates  = last7;
+  const labels    = allDates.map(fmtDate);
   const campaigns = Object.keys(byCamp).sort();
 
   // Construir datasets por campanha
@@ -1075,6 +1088,12 @@ function renderAdsCharts(rows) {
       title: 'CPI ($)',
       prefix: '$', decimals: 2,
       metricFn: d => d.ics > 0 ? d.cost / d.ics : null,
+    },
+    {
+      id: 'ads-chart-cpm',
+      title: 'CPM ($)',
+      prefix: '$', decimals: 2,
+      metricFn: d => d.impressions > 0 ? d.cost / d.impressions * 1000 : null,
     },
   ];
 
