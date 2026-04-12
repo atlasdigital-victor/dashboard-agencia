@@ -569,6 +569,18 @@
             <option value="">Todos</option>
           </select>
         </div>
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Dono</label>
+          <select id="ads-dono" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="ads-filter-group">
+          <label class="ads-filter-label">Nicho</label>
+          <select id="ads-nicho" class="ads-select" onchange="onAdsFilterChange()">
+            <option value="">Todos</option>
+          </select>
+        </div>
       </div>
 
       <!-- KPI ROW 1: Financeiro -->
@@ -817,6 +829,8 @@ function getAdsFilterValues() {
     conta:      document.getElementById('ads-conta')?.value      || '',
     campaign:   document.getElementById('ads-campaign')?.value   || '',
     ad:         document.getElementById('ads-ad')?.value         || '',
+    dono:       document.getElementById('ads-dono')?.value       || '',
+    nicho:      document.getElementById('ads-nicho')?.value      || '',
   };
 }
 
@@ -886,6 +900,8 @@ async function loadAds() {
     if (f.conta)      params.set('conta',      f.conta);
     if (f.campaign)   params.set('campaign',   f.campaign);
     if (f.ad)         params.set('ad',         f.ad);
+    if (f.dono)       params.set('dono',       f.dono);
+    if (f.nicho)      params.set('nicho',      f.nicho);
 
     const res = await fetch(
       `${SUPABASE_URL}/functions/v1/ads-performance-agencia?${params}`,
@@ -901,11 +917,15 @@ async function loadAds() {
       fillSelect('ads-conta',      json.filters.contas      || []);
       fillSelect('ads-campaign',   json.filters.campaigns   || []);
       fillSelect('ads-ad',         json.filters.ads         || []);
+      fillSelect('ads-dono',       json.filters.donos       || []);
+      fillSelect('ads-nicho',      json.filters.nichos      || []);
       // restore selections
       if (f.plataforma) document.getElementById('ads-plataforma').value = f.plataforma;
       if (f.conta)      document.getElementById('ads-conta').value      = f.conta;
       if (f.campaign)   document.getElementById('ads-campaign').value   = f.campaign;
       if (f.ad)         document.getElementById('ads-ad').value         = f.ad;
+      if (f.dono)       document.getElementById('ads-dono').value       = f.dono;
+      if (f.nicho)      document.getElementById('ads-nicho').value      = f.nicho;
     }
 
     // ── Totals ──
